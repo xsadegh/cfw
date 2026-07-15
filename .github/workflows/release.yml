@@ -36,7 +36,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cfw-linux-${{ matrix.goarch }}
-          path: cfw/dist/cfw-linux-${{ matrix.goarch }}
+          path: dist/cfw-linux-${{ matrix.goarch }}
 
   release:
     needs: build
