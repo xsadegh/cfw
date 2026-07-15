@@ -1,4 +1,4 @@
-module cfw
+module go.sadegh.io/cfw
 
 go 1.26
 
