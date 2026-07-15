@@ -20,8 +20,8 @@ at the real remote as usual — `cfw` attaches to the primary interface.
 ## How it works
 
 ```
-WireGuard  --egress-->  [eBPF: stamp reserved / handshake init]  --> NIC
-WireGuard  <--ingress--  [eBPF: zero reserved]                   <-- NIC
+WireGuard  egress-->   [eBPF: stamp reserved]    --> NIC
+WireGuard  <--ingress  [eBPF: zero reserved]     <-- NIC
 
 Junk sidecar:
   handshake init  --> eBPF ring buffer --> sidecar --> N junk packets, then the init

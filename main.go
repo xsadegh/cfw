@@ -102,7 +102,7 @@ func main() {
 		fatalUsage("nothing to do: set -r (reserved) and/or --jc (junk)")
 	}
 
-	if err := run(iface, addrPort, rb, junk); err != nil {
+	if err = run(iface, addrPort, rb, junk); err != nil {
 		log.Fatal(err)
 	}
 }
