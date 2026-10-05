@@ -42,12 +42,14 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("cfw: ")
 
-	var iface, target string
+	var iface, listen, target string
 	var reserved reservedFlag
 	var jc, jMin, jMax int
 
 	flag.StringVar(&iface, "interface", "", "egress network interface")
 	flag.StringVar(&iface, "i", "", "shorthand for --interface")
+	flag.StringVar(&listen, "listen", "", "relay mode: local ip:port for the WireGuard Endpoint (junk only, no eBPF)")
+	flag.StringVar(&listen, "l", "", "shorthand for --listen")
 	flag.StringVar(&target, "target", "", "wireguard endpoint as ip:port (required)")
 	flag.StringVar(&target, "t", "", "shorthand for --target")
 	flag.Var(&reserved, "reserved", "reserved bytes '100,178,104'")
@@ -57,16 +59,21 @@ func main() {
 	flag.IntVar(&jMax, "jmax", 70, "maximum junk packet size (bytes)")
 
 	flag.Usage = func() {
-		_, _ = fmt.Fprint(os.Stderr, "usage: cfw -i <iface> -t <ip:port> [-r a,b,c] [--jc N --jmin N --jmax N]\n\n")
+		_, _ = fmt.Fprint(os.Stderr, "usage: cfw -i <iface> -t <ip:port> [-r a,b,c] [--jc N --jmin N --jmax N]\n")
+		_, _ = fmt.Fprint(os.Stderr, "       cfw -l <ip:port> -t <ip:port> --jc N [--jmin N --jmax N]\n\n")
 		_, _ = fmt.Fprint(os.Stderr, "  reserved only: cfw -i eth0 -t 162.159.192.1:2408 -r 100,178,104\n")
 		_, _ = fmt.Fprint(os.Stderr, "  junk only:     cfw -i eth0 -t 162.159.192.1:2408 --jc 4 --jmin 40 --jmax 70\n")
-		_, _ = fmt.Fprint(os.Stderr, "  both:          cfw -i eth0 -t 162.159.192.1:2408 -r 100,178,104 --jc 4 --jmin 40 --jmax 70\n\n")
+		_, _ = fmt.Fprint(os.Stderr, "  both:          cfw -i eth0 -t 162.159.192.1:2408 -r 100,178,104 --jc 4 --jmin 40 --jmax 70\n")
+		_, _ = fmt.Fprint(os.Stderr, "  relay (macOS): cfw -l 127.0.0.1:51821 -t 162.159.192.1:2408 --jc 4 --jmin 40 --jmax 70\n\n")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
 
-	if iface == "" {
-		fatalUsage("missing required --interface/-i")
+	if iface == "" && listen == "" {
+		fatalUsage("missing required --interface/-i (or --listen/-l for relay mode)")
+	}
+	if iface != "" && listen != "" {
+		fatalUsage("use either --interface/-i or --listen/-l, not both")
 	}
 	if target == "" {
 		fatalUsage("missing required --target/-t")
@@ -96,6 +103,23 @@ func main() {
 			fatalUsage("need 0 < --jmin <= --jmax")
 		}
 		junk = &junkConfig{count: jc, min: jMin, max: jMax}
+	}
+
+	if listen != "" {
+		if rb != nil {
+			fatalUsage("--reserved is not supported with --listen")
+		}
+		if junk == nil {
+			fatalUsage("--listen needs --jc")
+		}
+		listenAddr, err := netip.ParseAddrPort(listen)
+		if err != nil {
+			fatalUsage(fmt.Sprintf("invalid --listen %q: %v", listen, err))
+		}
+		if err = runRelay(listenAddr, addrPort, *junk); err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 
 	if rb == nil && junk == nil {

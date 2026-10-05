@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        goos: [linux, darwin]
         goarch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
@@ -24,16 +25,16 @@ jobs:
 
       - name: Build
         env:
-          GOOS: linux
+          GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          go build -trimpath -ldflags="-s -w" -o dist/cfw-linux-${{ matrix.goarch }} .
+          go build -trimpath -ldflags="-s -w" -o dist/cfw-${{ matrix.goos }}-${{ matrix.goarch }} .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cfw-linux-${{ matrix.goarch }}
-          path: dist/cfw-linux-${{ matrix.goarch }}
+          name: cfw-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/cfw-${{ matrix.goos }}-${{ matrix.goarch }}
 
   release:
     needs: build

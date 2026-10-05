@@ -34,6 +34,7 @@ them straight through instead of re-capturing them (which would loop).
 
 - Linux, `CAP_NET_ADMIN` + `CAP_BPF` (TC/eBPF attach), and `CAP_NET_RAW` if junk
   packets are enabled (raw socket). Easiest to just run as root.
+- Relay mode (`-l`, for macOS) needs no special privileges.
 
 ## Build
 
@@ -45,11 +46,13 @@ go build -o cfw .
 
 ```
 cfw -i <iface> -t <ip:port> [-r a,b,c] [--jc N --jmin N --jmax N]
+cfw -l <ip:port> -t <ip:port> --jc N [--jmin N --jmax N]
 ```
 
 | Flag          | Shorthand | Description                                                              |
 |---------------|-----------|--------------------------------------------------------------------------|
-| `--interface` | `-i`      | Egress network interface (required)                                      |
+| `--interface` | `-i`      | Egress network interface (required, Linux only)                          |
+| `--listen`    | `-l`      | Relay mode: local `ip:port` for the `Endpoint`, replaces `-i`            |
 | `--target`    | `-t`      | WireGuard endpoint as `ip:port`, IPv4 only (required)                    |
 | `--reserved`  | `-r`      | 3 reserved bytes, comma-separated, e.g. `100,178,104` (optional)         |
 | `--jc`        |           | Junk packets to send before each handshake init (default `0` = disabled) |
@@ -75,3 +78,10 @@ sudo cfw -i eth0 -t 162.159.192.1:2408 --jc 4 --jmin 40 --jmax 70
 Point your WireGuard peer's `Endpoint` at the real target (`162.159.192.1:2408`
 above). `cfw` does not proxy traffic through a local address; it rewrites it
 on the interface you attach to.
+
+## macOS (Relay mode)
+
+macOS has no eBPF, so `cfw` runs as a local UDP relay there. Relay mode
+supports junk packets only. The WireGuard `Endpoint` points at the relay, and
+the relay forwards every packet to the target unchanged. Before each handshake
+initiation, the relay sends `--jc` junk packets to the target.

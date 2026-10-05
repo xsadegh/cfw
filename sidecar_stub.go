@@ -10,5 +10,5 @@ import (
 )
 
 func startSidecar(_ *ebpf.Map, _ netip.AddrPort, _ junkConfig) (func(), error) {
-	return nil, fmt.Errorf("cfw requires linux (eBPF TC)")
+	return nil, fmt.Errorf("--interface requires linux (eBPF TC), use --listen for relay mode")
 }
